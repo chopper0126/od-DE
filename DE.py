@@ -135,7 +135,7 @@ if __name__ == '__main__':
     def constraints(x):
         return 0
 
-
+    a = 1
     lowwer = -10
     upper = 10
     pop_size = 200

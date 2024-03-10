@@ -5,6 +5,6 @@ SaDE：Self-adaptive Differential Evolution Algorithm for Numerical Optimization
 
 JADE：Adaptive Differential Evolution withOptional External Archive
 
-SHADE：Success-history based parameter adaptation for Differential Evolution
+SHADE：Success-history  based parameter adaptation for Differential Evolution
 
 LSHADE：Improving the search performance of SHADE using linear population size reduction
