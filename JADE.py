@@ -321,8 +321,6 @@ if __name__ == '__main__':
     def constraints(x):
         return 3*calc_e1(x) + calc_e2(x) + 10*calc_e3(x)
 
-
-
     lowwer = 0
     upper = 100
     pop_size = 300
