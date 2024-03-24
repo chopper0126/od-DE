@@ -124,6 +124,7 @@ class SHADE():
 
     #迭代
     def run(self):
+        fitness = []
         pre=np.min(self.fit)
         count=0
         self.initpop()#初始化种群
@@ -159,6 +160,7 @@ class SHADE():
                     #self.SCR) != 0 else self.stopvalue  # 更新MF中的值
                 self.MF[i % self.H] = self.uF  # 更新MF中的值
             #打印每次迭代的种群最优值，均值，最差值，方差
+            fitness.append(np.min(self.fit))
             print('epoch:', i, 'best:', np.min(self.fit),
                   'mean:', np.mean(self.fit),
                   'worst:', np.max(self.fit),
@@ -167,14 +169,14 @@ class SHADE():
                   'conv:',self.constraints(self.best))
             # if self.NFE > self.max_NFE:
             #     break
-            if count>100:
+            if count>1500:
                 break
             if pre-(np.min(self.fit)+self.constraints(self.best))<1e-6:
                 count+=1
             else:
                 count=0
             pre=np.min(self.fit)+self.constraints(self.best)
-        return self.best#返回最优个体
+        return self.best,fitness # 返回最优个体,迭代fit值
 
 if __name__ == '__main__':
     def fitness(x):
@@ -197,10 +199,28 @@ if __name__ == '__main__':
     pop_size=180
     dim=10
     mut_way='DE/current-to-pbest/1'
-    epochs=1000
+    epochs=1
     shade=SHADE(fitness,constraints,lowwer,upper,pop_size,dim,mut_way,epochs)
-    best=shade.run()
+    best,fit = shade.run()
+    print(fit)
     print(best)
     print(fitness(best))
+    # cpso_best = np.array([ 1.80990165e-03,  1.65548581e-02, -1.53906733e-02,  2.25611073e-03,
+    #     1.54218738e-03,  2.20115980e-02, -1.77186381e-04, -1.46992733e-02,
+    #    -1.57682294e-02, -1.35300724e-03,  4.36374283e-03,  4.19736469e-03,
+    #     9.98236439e-04, -2.65937592e-02, -3.04787192e-03, -8.55184904e-03,
+    #    -5.79767995e-05, -4.71962162e-04, -6.16584788e-03,  1.91793849e-03,
+    #     9.03517262e-03, -2.71841603e-03, -2.37648245e-03,  1.96005311e-02,
+    #     2.49239794e-03,  1.73403948e-02, -2.18824590e-02, -1.93048501e-04,
+    #    -2.85990624e-03,  1.24519274e-03, -6.77411605e-03,  6.59205432e-03,
+    #     7.41540281e-04,  2.09710223e-03, -1.21474567e-02,  8.97168152e-04,
+    #     2.45526513e-03, -8.04066265e-03, -2.01445130e-03,  3.48898483e-03,
+    #     1.25774057e-03,  9.45861281e-03,  1.40746661e-03,  1.48653448e-02,
+    #    -1.43368414e-02, -9.34481161e-03,  9.81267533e-03, -5.34205875e-03,
+    #    -1.65851094e-02, -1.88531522e-02,  1.73386710e-02,  1.58978206e-03,
+    #     5.26535232e-04,  1.57620768e-03,  1.38372163e-02, -9.72581777e-03,
+    #    -1.23249425e-02, -5.92423496e-03, -6.26398179e-03,  3.60037470e-03,
+    #    -1.30765185e-03,  1.74702221e-02, -3.62386410e-03])
+    # print(fitness(cpso_best))
 
 

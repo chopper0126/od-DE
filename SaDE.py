@@ -107,6 +107,7 @@ class SaDE():
                 self.CR_set.append(self.CR[i])  # 将成功的CR加入CR集合
 
     def run(self):
+        fitness= []
         pre=np.min(self.fit)
         count=0
         pre_d=0
@@ -134,6 +135,7 @@ class SaDE():
             self.select(cross_population)  # 选择
             self.best = self.population[np.argmin(self.fit)]  # 更新最优个体
             # 打印每次迭代的种群最优值，均值，最差值，方差
+            fitness.append(np.min(self.fit))
             print('epoch:', i, 'best:', np.min(self.fit),
                   'mean:',np.mean(self.fit),
                   'worst:',np.max(self.fit),
@@ -150,7 +152,7 @@ class SaDE():
                 count=0
             pre=np.min(self.fit)+self.constraints(self.best)
 
-        return self.best  # 返回最优个体
+        return self.best ,fitness # 返回最优个体
 
 
 if __name__ == '__main__':
@@ -176,8 +178,9 @@ if __name__ == '__main__':
     pop_size = 18*10
     dim = 10
     mut_way = 'DE/rand/1'
-    epochs = 1000
+    epochs = 100
     sade = SaDE(fitness, constraints, lowwer, upper, pop_size, dim, mut_way, epochs)
-    best = sade.run()
+    best, fit = sade.run()
+    print(fit)
     print(best)
     print(fitness(best))

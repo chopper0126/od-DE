@@ -101,6 +101,7 @@ class DE():
                 self.population[i] = cross_population[i]
 
     def run(self):
+        fitness =[]
         pre = np.min(self.fit)
         count = 0
         self.initpop()  # 初始化种群
@@ -111,12 +112,13 @@ class DE():
             self.best = self.population[np.argmin(self.fit)]  # 更新最优个体
 
             # 打印每次迭代的种群最优值，均值，最差值，方差
+            fitness.append(np.min(self.fit))
             print('epoch:', i, 'best:', np.min(self.fit),
                   'mean:', np.mean(self.fit),
                   'worst:', np.max(self.fit),
                   'std:', np.std(self.fit))
 
-            if count > 50:  # 如果连续20次最优值没有变化，则停止迭代
+            if count > 100:  # 如果连续20次最优值没有变化，则停止迭代
                 break
             if (abs(np.min(self.fit) - pre) < 1e-6):
                 count += 1
@@ -124,7 +126,7 @@ class DE():
                 count = 0
             pre = np.min(self.fit)
 
-        return self.best  # 返回最优个体
+        return self.best,fitness  # 返回最优个体
 
 
 if __name__ == '__main__':
@@ -143,6 +145,7 @@ if __name__ == '__main__':
     mut_way = 'DE/rand/1'
     epochs = 1000
     de = DE(fitness, constraints, lowwer, upper, pop_size, dim, mut_way, epochs)
-    best = de.run()
+    best,fit = de.run()
+    print(fit)
     print(best)
     print(fitness(best))

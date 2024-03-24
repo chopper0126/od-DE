@@ -131,6 +131,7 @@ class LSHADE():
         self.fit=self.fit[idx]
 
     def run(self):
+        fitness = []
         pre=np.min(self.fit)
         count=0
         self.initpop()  # 初始化种群
@@ -170,6 +171,7 @@ class LSHADE():
                 self.MF[epoch % self.H] = self.uF  # 更新MF中的值
             self.Linear_reduction(epoch)  # 线性减小种群大小
             # 打印每次迭代的种群最优值，均值，最差值，方差
+            fitness.append(np.min(self.fit))
             print('epoch:', epoch, 'best:', np.min(self.fit),
                   'mean:', np.mean(self.fit),
                   'worst:', np.max(self.fit),
@@ -179,14 +181,14 @@ class LSHADE():
                   'conv',self.constraints(self.best))
             # if self.NFE > self.max_NFE:
             #     break
-            if count>100:
+            if count>1500:
                 break
             if pre-(np.min(self.fit)+self.constraints(self.best))<1e-6:
                 count+=1
             else:
                 count=0
             pre=np.min(self.fit)+self.constraints(self.best)
-        return self.best  # 返回最优个体
+        return self.best,fitness  # 返回最优个体
 
 
 if __name__ == '__main__':
@@ -194,7 +196,6 @@ if __name__ == '__main__':
         y = 0
         for i in range(len(x)):
             y = y + x[i] ** 2 - 10 * cos(2 * pi * x[i]) + 10
-
         return y
 
 
@@ -215,6 +216,7 @@ if __name__ == '__main__':
     mut_way = 'DE/current-to-pbest/1'
     epochs = 1000
     lshade = LSHADE(fitness, constraints, lowwer, upper, pop_size, dim, mut_way, epochs)
-    best = lshade.run()
+    best, fit = lshade.run()
+    print(fit)
     print(best)
     print(fitness(best))
