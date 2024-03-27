@@ -99,12 +99,13 @@ class RDPSO():
         for j in range(self.Epochs):
             # RDPSO自适应权重w
             w = self.cal_w(self.Epochs, j + 1)
+            alpha = self.cal_alpha(self.Epochs, j + 1)
             # RDPSO 与 PSO 权重
             W = self.cal_W(self.Epochs, j + 1, self.yuzhi)
             # pso、rdpso、ardpso
             table = {'pso': self.velocity_update( self.v,self.population, self.pbest, self.gbest, w),
-                     'rdpso': self.RDPSO_velocity_update(self.v,self.population, self.pbest, self.gbest, w),
-                     'ardpso': W * self.velocity_update(self.v,self.population, self.pbest, self.gbest, w) + (1 - W) * self.RDPSO_velocity_update(self.v,self.population,self.pbest, self.gbest, w)
+                     'rdpso': self.RDPSO_velocity_update(self.v,self.population, self.pbest, self.gbest,alpha, w),
+                     'ardpso': W * self.velocity_update(self.v,self.population, self.pbest, self.gbest, w) + (1 - W) * self.RDPSO_velocity_update(self.v,self.population,self.pbest, self.gbest,alpha,w)
                      }
             # 更新速度
             self.v = table[self.key]
@@ -160,6 +161,13 @@ class RDPSO():
         w_min = 0.4
         return w_max - (w_max - w_min) * iter / iter_max
 
+    # 自适应权重 -- 线性方法
+    def cal_alpha(self, iter_max, iter):
+        # 自适应权重
+        w_max = 0.9
+        w_min = 0.3
+        return w_max - (w_max - w_min) * iter / iter_max
+
     # 权重W -- 前期用pso，后期用rdpso
     def cal_W(self, iter_max, iter, yuzhi):
         # 权重
@@ -194,7 +202,7 @@ class RDPSO():
 
         return V
 
-    def RDPSO_velocity_update(self,V, X, pbest, gbest, w):
+    def RDPSO_velocity_update(self,V, X, pbest, gbest,alpha ,w):
         """
         根据速度更新公式更新每个粒子的速度
         :param V: 粒子当前的速度矩阵，self.pop_size*dim 的矩阵
@@ -210,8 +218,8 @@ class RDPSO():
         # 计算VR
         temp = sum(pbest[i] for i in range(len(pbest)))
         C = temp / len(pbest)
-        λ = np.random.randn(1)
-        VR = w * abs(C - X) * λ
+        λ = np.random.random((self.pop_size, 1))
+        VR = alpha * abs(C - X) * λ
         V = VR + VD
         # V = w * V + c1  * r1*(pbest - X) + c2 * r2*(gbest- X)  # 直接对照公式写就好了
 

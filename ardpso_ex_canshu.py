@@ -16,7 +16,7 @@ def ardpso_ex_canshu():
 
     key = 'ardpso'
     sample_size = 20
-    stdev_data = 20
+    stdev_data = 1
     return key,sample_size,stdev_data
 
 import numpy as np

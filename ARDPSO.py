@@ -92,6 +92,7 @@ class ARDPSO():
 
     def run(self):
         fitness = []
+        fitness_mean = []
         count = 0
         pre = 0
         self.init_pop()  # 初始化种群
@@ -99,7 +100,7 @@ class ARDPSO():
         for j in range(self.Epochs):
             # RDPSO自适应权重w
             w = self.cal_w(self.Epochs, j + 1)
-            alpha = self.cal_w(self.Epochs, j + 1)
+            alpha = self.cal_alpha(self.Epochs, j + 1)
             # RDPSO 与 PSO 权重
             W = self.cal_W(self.Epochs, j + 1, self.yuzhi)
             # pso、rdpso、ardpso
@@ -123,6 +124,7 @@ class ARDPSO():
                 self.gbest =  self.population[np.argmin(self.fit)].copy() # 种群历史最优位置
                 self.gbest_fit = np.min(self.fit)
             fitness.append(self.gbest_fit)
+            fitness_mean.append(np.mean(self.fit))
             # 打印每次迭代的种群最优值，均值，最差值，方差
             print('epoch:', j, 'best:', self.gbest_fit,
                   'mean:', np.mean(self.fit),
@@ -138,7 +140,7 @@ class ARDPSO():
             else:
                 count = 0
             pre = np.min(self.fit) + self.constraints(self.gbest)
-        return self.gbest,fitness  # 返回最优个体
+        return self.gbest,fitness # 返回最优个体
 
 
     def calc_Lj(self,e1, e2, e3):
@@ -159,6 +161,13 @@ class ARDPSO():
         # 自适应权重
         w_max = 2
         w_min = 0.4
+        return w_max - (w_max - w_min) * iter / iter_max
+
+    # 自适应权重 -- 线性方法
+    def cal_alpha(self, iter_max, iter):
+        # 自适应权重
+        w_max = 0.9
+        w_min = 0.3
         return w_max - (w_max - w_min) * iter / iter_max
 
     # 权重W -- 前期用pso，后期用rdpso
@@ -212,8 +221,9 @@ class ARDPSO():
         temp = sum(pbest[i] for i in range(len(pbest)))
         C = temp / len(pbest)
         λ = np.random.random((self.pop_size, 1))
-        VR = w * abs(C - X) * λ
-        V = VR + VD
+        VR = alpha * abs(C - X) * λ
+        # V = VR + VD
+        V = w*V + VR + VD
         # V = w * V + c1  * r1*(pbest - X) + c2 * r2*(gbest- X)  # 直接对照公式写就好了
 
 
@@ -326,8 +336,8 @@ class ARDPSO():
         return gongShi
 
 if __name__ == '__main__':
-    from get_data import init_data, init_data_m50
-    M, Oir, O, d, P, t, yunfei, amin, amax, Co, Pir, mean_v ,good_p= init_data()
+    from get_data import init_data, init_data_m100
+    M, Oir, O, d, P, t, yunfei, amin, amax, Co, Pir, mean_v ,good_p= init_data_m100()
 
 
     # M, Oir, O, d, P, t, yunfei, amin, amax, Co, Pir, mean_v ,good_p= init_data_m50()
@@ -497,18 +507,9 @@ if __name__ == '__main__':
         return 0
     # def fitness(x):
     #     return np.sum((x-1) ** 2 + 1)
-    # good_p = np.array([5.24959744,10.78959422,8.84181833,40.32418595,5.0165174,22.42633472,
-    #                     6.3847671,5.73216712,5.066344,   5.16240637, 9.21130136,39.10845744,
-    #                     6.32625664,28.4067019,5.01600659,7.45698086,12.43456253,23.23068573,34.4155452,
-    #                     5.48714334,11.01312505,8.34729214,40.49066999,16.9625515,
-    #                     13.36428185,5.17530975,7.95158742,6.72807753,7.26196279,5.22171634
-    #                     ,5.10605047,6.74460108,15.09387657,39.06158359,20.57678895,5.01979423
-    #                     ,5.99031298,13.63275747,32.82626417,22.21654759,5.08358577,14.29102637
-    #                     ,5.03912101,5.6416357,38.48462916,16.01781318,11.34773976,5.00400576
-    #                     ,17.47199347,22.22081868,6.45840683,5.11171677,32.85661843,11.63611983
-    #                     ,8.00485779,12.8287266,5.02016695,8.58761759,5.80082289,21.97257134
-    #                     ,24.55942164,5.01334379,28.06376107]
-    #                   )
+    good_p = np.array([0.0005281266005244444, 0.0006950047004458988, 0.0003392135334459013, 2.1258016067240913e-05, 0.00044509092315269484, 0.020969079126019866, 0.00011189445188496828, 0.00012689810517085455, 0.00038264503389263824, 0.0003545378770129589, 4.702486552785398, 0.0005410878725578943, 0.00021914875684181368, 3.99103455817714, 4.726425840987948, 4.708294089641829, 1.0789957115602071, 4.691441091342125, 0.0005341363031311561, 1.4692701741324135e-05, 0.0005112302231244176, 0.0025062212531639944, 4.677453430510077, 0.008136771315741757, 6.324451329735822e-05, 0.00010784759110359789, 0.0005776957138823687, 4.664677454249207, 0.0006398778152065328, 3.9599208876200915, 0.0005279180982214488, 2.7589589441894575, 0.001030569331874769, 0.002406417634894152, 3.662710712042817, 4.716887944496311, 3.3362345200587174e-05, 4.8523302732610806e-05, 0.00016125741843106946, 0.00017799861817766995, 0.00017297197645789976, 0.00048771113011866616, 0.0010048479264282545, 0.0020148227200668437, 0.0002898295999729838, 4.734967554026579, 2.7175427094759037, 0.00015798435210932188, 4.601920395060372e-05, 0.0003873617386543184, 8.189859645982467e-05, 0.0003941626389822225, 0.0020442471385754154, 4.261424346420093e-05, 3.844200766994241e-05, 4.741022339143129, 0.0005663756072203795, 1.1197585469214986, 0.000272722846454759, 0.00046823867013068797, 2.2789450510342357, 0.0007766478057988221, 0.001607232368130291, 4.6807232746312355, 0.0007436289784202184, 0.0010917303745853714, 2.5945326866533196, 0.004067658025850924, 7.733440278882581e-06, 4.690170379887011, 0.0010467634372996605, 4.417219506313223, 0.00013138823655477034, 1.7180192935772564e-05, 4.399833065596553, 0.0006099538608309115, 0.0006856626507795216, 2.638128404548415, 0.0009768076242188167, 4.1593721997054285e-05, 0.0002821582609638391, 0.0013719265820707463, 0.00035555894253769667, 4.16017976483801, 0.00020215720451885252, 0.0008185904196119192, 0.00038977985140815647, 6.660468980015191e-05, 4.738760246707969, 3.6310781645303465e-05, 0.0012395132622287405, 0.0003721959309776941, 0.00010819403050564933, 2.679869171874239, 0.0011387860355860644, 0.0001450936342601407, 7.187235701237948e-06, 7.72283801602247e-05, 1.6644501360110016e-06, 6.283033007057729e-06]
+
+                      )
     print(fitness(good_p))
     print(calc_e1(good_p))
     print(calc_e2(good_p))
@@ -533,15 +534,17 @@ if __name__ == '__main__':
     import xlwt
 
     file = xlwt.Workbook('encoding = utf-8')  # 设置工作簿编码
-    sheet1 = file.add_sheet('sheet1', cell_overwrite_ok=True)  # 创建sheet工作表
-    sheet2 = file.add_sheet('sheet2', cell_overwrite_ok=True)  # 创建sheet工作表
-    for i in range(20):
+    sheet1 = file.add_sheet('fit_best_ok', cell_overwrite_ok=True)  # 创建sheet工作表
+    sheet2 = file.add_sheet('fit_best_all', cell_overwrite_ok=True)  # 创建sheet工作表
+    sheet3 = file.add_sheet('fit_mean_ok', cell_overwrite_ok=True)  # 创建sheet工作表
+    sheet4 = file.add_sheet('fit_mean_all', cell_overwrite_ok=True)  # 创建sheet工作表
+    for i in range(1):
         # 获取开始时间
         start = time.perf_counter()
         best, fit = ardpso.run()
-        # print(best)
-        # print(fitness(best))
-        # # print(con(best))
+        print(best)
+        print(fitness(best))
+        # print(con(best))
         print(calc_e1(best))
         print(calc_e2(best))
         print(calc_e3(best))
@@ -549,13 +552,15 @@ if __name__ == '__main__':
         end = time.perf_counter()
         # 计算运行时间
         runTime = end - start
-
         # 输出运行时间
         print("运行时间：", runTime, "秒")
         # # 保存结果
         for x in range(len(fit)):
             sheet2.write(x, i, fit[x])  # 写入数据参数对应 行, 列, 值
         sheet2.write(len(fit) + 1, i, runTime)  # 写入数据参数对应 行, 列, 值
+        for x in range(len(fit_mean)):
+            sheet4.write(x, i, fit_mean[x])  # 写入数据参数对应 行, 列, 值
+        sheet4.write(len(fit_mean) + 1, i, runTime)  # 写入数据参数对应 行, 列, 值
         if (calc_e1(best) == 0 and calc_e2(best) == 0.0 and calc_e3(best) == 0):
             # 保存结果
             if not os.path.exists(save_dir):
@@ -565,6 +570,7 @@ if __name__ == '__main__':
             f = open(f_dir, 'a+')
             f.write('pop_size = ' + str(pop_size) + '\n' +
                     'epochs = ' + str(epochs) + '\n' +
+                    'task_name = ' + task_name + '\n' +
                     'sample_size =' + str(sample_size) + '\n' +
                     'stdev_data =' + str(stdev_data) + '\n' +
                     '运行时间 =' + str(runTime) + "秒" + '\n' +
@@ -577,6 +583,9 @@ if __name__ == '__main__':
             for x in range(len(fit)):
                 sheet1.write(x, i, fit[x])  # 写入数据参数对应 行, 列, 值
             sheet1.write(len(fit) + 1, i, runTime)  # 写入数据参数对应 行, 列, 值
+            for x in range(len(fit_mean)):
+                sheet3.write(x, i, fit_mean[x])  # 写入数据参数对应 行, 列, 值
+            sheet3.write(len(fit_mean) + 1, i, runTime)  # 写入数据参数对应 行, 列, 值
             plt.xlabel('迭代次数')
             plt.ylabel('适应值')
             plt.title('迭代过程')
