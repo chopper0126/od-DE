@@ -140,7 +140,7 @@ class ARDPSO():
             else:
                 count = 0
             pre = np.min(self.fit) + self.constraints(self.gbest)
-        return self.gbest,fitness # 返回最优个体
+        return self.gbest,fitness,fitness_mean # 返回最优个体
 
 
     def calc_Lj(self,e1, e2, e3):
@@ -336,194 +336,26 @@ class ARDPSO():
         return gongShi
 
 if __name__ == '__main__':
-    from get_data import init_data, init_data_m100
-    M, Oir, O, d, P, t, yunfei, amin, amax, Co, Pir, mean_v ,good_p= init_data_m100()
+    from od_f import calc_e1, calc_e2, calc_e3, calc_e4, fitness, constraints, rt_idm, task_name
 
+    lowwer = 0
+    upper = 100
+    pop_size = 300
+    dim = rt_idm()
+    epochs = 500
 
-    # M, Oir, O, d, P, t, yunfei, amin, amax, Co, Pir, mean_v ,good_p= init_data_m50()
-    # 目标函数和约束参数
-    l1, l2, l3 = 900, 300, 500
-    def fitness(X):
-        '''
-        目标函数
-        '''
-        # 生成距离决策矩阵
-        global D2
-        D2 = []
-        for x in X:
-            if x > 0:
-                D2.append(1)
-            else:
-                D2.append(0)
-        # define list
-        D2 = np.asarray(D2)
-        D2 = np.array(D2, dtype=int)
-        global gongShi  # 工时=比例*订单加工总数
-        gongShi = [] * O * M * Oir
-        temp = 0
-        temp2 = 0
-        for i in range(O):
-            for j in range(Oir):
-                tem = [0] * M  # 临时子工时
-                tem[i] = np.multiply(X[0 + temp:M + temp], t[j + temp2])
-                gongShi.extend(tem[i])
-                temp += M
-            temp2 += Oir
-        f1 = np.dot(gongShi, P[:O * M * Oir])
-        f2 = np.dot(D2, d[:O * M * Oir])
-        f = f1 + f2 * yunfei * 100  # 计算目标函数值, 生产费用 = 工时*报价，运输费用=单位距离运费*距离决策矩阵*距离
-        f = f / 100
-        f = all_e(X,l1,l2,l3) + f
-        # print('f = ', f)
-        return f
-
-    def calc_e1(X):
-        """
-        计算第一个约束的惩罚项
-        计算群体惩罚项，X 的维度是 size * 8
-        等式约束：每个订单工序分配给供应商的比例总数等于100
-        """
-        e1 = [0] * O * Oir
-        temp = 0
-        temp2 = 0
-        for i in range(O):
-            for j in range(Oir):
-                e1[j + temp2] = (np.abs(X[temp:M + temp].sum() - 100))*1
-                if (np.abs(X[temp:M + temp].sum() - 100) < 1):
-                    e1[j + temp2] = 0
-                temp += M
-            temp2 += Oir
-        ds_error1 = sum(e1)
-        # print('e1:', e1)
-        return ds_error1
-
-
-    def calc_e2(X):
-        """
-        计算第二个约束的惩罚项
-        不等式约束：分配的工时，不能超过供应商剩余能力上下限
-        """
-        e2 = []
-        temp = 0
-
-        count = O
-        for k in range(Oir):
-
-            for j in range(M):
-                r_gongshi_sum = 0
-                while (count > 0):
-                    r_gongshi_sum += np.multiply(t[k + O * (count - 1)], X[j + M * Oir * (count - 1) + temp])
-                    count -= 1
-                count = O
-                if (r_gongshi_sum) >= amax[j + temp]:
-                    # 如果该加工时数大于于规定最大值 bv
-                    e2.append(1 * (r_gongshi_sum - amax[j + temp]))
-                else:
-                    e2.append(0)
-            temp += M
-
-        bds_e = sum(e2)
-        # print('e2:', e2,"sum(e2):" ,bds_e/100 )
-        return bds_e / 100
-
-    def calc_e3(X):
-        '''
-        计算第三个个约束的惩罚项  时间约束惩罚项
-        不等式约束：加工时间+运输时间 不能超过订单周期Co
-        '''
-        # 生成距离决策矩阵
-        global D2
-        D2 = []
-        temp = 0
-        for i in range(O):
-            for _ in range(Oir):
-                for j in range(M):
-                    if X[j + temp] > 0:
-                        D2.append(1)
-                    else:
-                        D2.append(0)
-                temp += M
-        # define list
-        D2 = np.asarray(D2)
-        D2 = np.array(D2, dtype=int)
-        global gongShi  # 工时=比例*订单加工总数
-        gongShi = [] * O * M * Oir
-        temp = 0
-        temp2 = 0
-        for i in range(O):
-            for j in range(Oir):
-                tem = [0] * M  # 临时子工时
-                tem[i] = np.multiply(X[0 + temp:M + temp], t[j + temp2])
-                gongShi.extend(tem[i])
-                temp += M
-            temp2 += Oir
-        # DT 运输时间 = 距离/平均速度
-        DT = np.divide(D2 * d[:O * M * Oir], mean_v)
-        DT = np.multiply(DT, 100)
-
-        CT = DT + gongShi
-        CT = np.asarray(CT)
-        ct_max = [0] * O
-        e3 = [0] * O
-        for i in range(O):
-            ct_max[i] = np.max(CT[Oir * M * i:Oir * M * (i + 1)]) / 100
-            if (Co[i] - ct_max[i] >= 0):
-                e3[i] = 0
-            else:
-                e3[i] = (ct_max[i] - Co[i])*1
-
-        # print('e3:', e3)
-        # if all(i < 0.1 for i in e3):
-        #     return 0
-        return sum(e3)
-
-    def all_e(x,l1,l2,l3):
-        '''
-        罚函数系数
-        :param x:
-        :return:
-        '''
-        return l1 * calc_e1(x) + l2*calc_e2(x) + l3*calc_e3(x)
-
-    # def fitness(x):
-    #     y = 0
-    #     for i in range(len(x)):
-    #         y = y + x[i] ** 2 - 10 * cos(2 * pi * x[i]) + 10
-    #     print("y:",y)
-    #     return y + 100*con(x)
-    #
-    #
-    # def con(x):
-    #     g1 = 0
-    #     g2 = 0
-    #     for i in range(len(x)):
-    #         g1 = g1 + (-x[i] * sin(2 * x[i]))
-    #         g2 = g2 + x[i] * sin(x[i])
-    #     g = max(g1, 0) + max(g2, 0)
-    #     print("g/2:",g/2)
-    #     return g/2
-
-    def constraints(x):
-        return 0
-    # def fitness(x):
-    #     return np.sum((x-1) ** 2 + 1)
-    good_p = np.array([0.0005281266005244444, 0.0006950047004458988, 0.0003392135334459013, 2.1258016067240913e-05, 0.00044509092315269484, 0.020969079126019866, 0.00011189445188496828, 0.00012689810517085455, 0.00038264503389263824, 0.0003545378770129589, 4.702486552785398, 0.0005410878725578943, 0.00021914875684181368, 3.99103455817714, 4.726425840987948, 4.708294089641829, 1.0789957115602071, 4.691441091342125, 0.0005341363031311561, 1.4692701741324135e-05, 0.0005112302231244176, 0.0025062212531639944, 4.677453430510077, 0.008136771315741757, 6.324451329735822e-05, 0.00010784759110359789, 0.0005776957138823687, 4.664677454249207, 0.0006398778152065328, 3.9599208876200915, 0.0005279180982214488, 2.7589589441894575, 0.001030569331874769, 0.002406417634894152, 3.662710712042817, 4.716887944496311, 3.3362345200587174e-05, 4.8523302732610806e-05, 0.00016125741843106946, 0.00017799861817766995, 0.00017297197645789976, 0.00048771113011866616, 0.0010048479264282545, 0.0020148227200668437, 0.0002898295999729838, 4.734967554026579, 2.7175427094759037, 0.00015798435210932188, 4.601920395060372e-05, 0.0003873617386543184, 8.189859645982467e-05, 0.0003941626389822225, 0.0020442471385754154, 4.261424346420093e-05, 3.844200766994241e-05, 4.741022339143129, 0.0005663756072203795, 1.1197585469214986, 0.000272722846454759, 0.00046823867013068797, 2.2789450510342357, 0.0007766478057988221, 0.001607232368130291, 4.6807232746312355, 0.0007436289784202184, 0.0010917303745853714, 2.5945326866533196, 0.004067658025850924, 7.733440278882581e-06, 4.690170379887011, 0.0010467634372996605, 4.417219506313223, 0.00013138823655477034, 1.7180192935772564e-05, 4.399833065596553, 0.0006099538608309115, 0.0006856626507795216, 2.638128404548415, 0.0009768076242188167, 4.1593721997054285e-05, 0.0002821582609638391, 0.0013719265820707463, 0.00035555894253769667, 4.16017976483801, 0.00020215720451885252, 0.0008185904196119192, 0.00038977985140815647, 6.660468980015191e-05, 4.738760246707969, 3.6310781645303465e-05, 0.0012395132622287405, 0.0003721959309776941, 0.00010819403050564933, 2.679869171874239, 0.0011387860355860644, 0.0001450936342601407, 7.187235701237948e-06, 7.72283801602247e-05, 1.6644501360110016e-06, 6.283033007057729e-06]
-
-                      )
+    good_p = np.array([4.841573415055974, 0.6339072358945023, 0.6421537048001201, 12.691325637848726, 10.371389053929061, 66.52742377128104, 3.3707498516154915, 0.14060496899097424, 0.15435366968495412, 0.11630950639061483, 16.82752018737975, 13.85431248070134, 0.336410200103301, 67.6338881207223, 0.09419380758800705, 21.82410033672956, 0.45649553825008865, 13.292578649339651, 0.09733985555744501, 0.8235725928508245, 62.53271374919887, 0.32206026652766234, 25.376128115821793, 13.189141825218835, 40.73445625620001, 0.14623981771158956, 1.627327637415006, 17.612542281649382, 4.9361938069952735, 21.1961129649931, 17.20463317604645, 22.098196734914474, 21.35046416434009, 5.756221433311353, 6.524963912179534, 1.5568843548413749, 3.8030360851512537, 25.209819384516518, 56.28321252013453, 0.5847612474086412, 0.030969750681684623, 11.716723062918865, 1.9515975653102926, 17.579014150318493, 11.782069519912405, 19.116701216182154, 9.477740879206936, 14.177002497223596, 24.94418195208242, 13.461401417190501, 2.4511884741588026, 3.49111821033141, 47.05193393669734, 18.60053966902879, 4.590334830955364, 9.436636196688276, 3.7320771981780143, 0.16520821557501986, 1.256850578654549, 16.627659826722443, 55.93599829949874, 6.601618897281788, 14.7908885085836]
+)
     print(fitness(good_p))
     print(calc_e1(good_p))
     print(calc_e2(good_p))
     print(calc_e3(good_p))
+    print(calc_e4(good_p))
 
     # good_p 参数
     sample_size = 20
-    stdev_data = 20
+    stdev_data = 1
     # ARDPSO_MY 参数
-    lowwer = 0
-    upper = 100
-    pop_size = 300
-    dim = M*O*Oir
-    epochs = 1500
     key = 'ardpso'
     # dim = M * O * Oir  # 粒子的维度     改 7*3*3
     # dim = 10 # 粒子的维度     改 7*3*3
@@ -538,10 +370,10 @@ if __name__ == '__main__':
     sheet2 = file.add_sheet('fit_best_all', cell_overwrite_ok=True)  # 创建sheet工作表
     sheet3 = file.add_sheet('fit_mean_ok', cell_overwrite_ok=True)  # 创建sheet工作表
     sheet4 = file.add_sheet('fit_mean_all', cell_overwrite_ok=True)  # 创建sheet工作表
-    for i in range(1):
+    for i in range(10):
         # 获取开始时间
         start = time.perf_counter()
-        best, fit = ardpso.run()
+        best, fit,fit_mean = ardpso.run()
         print(best)
         print(fitness(best))
         # print(con(best))
@@ -561,7 +393,7 @@ if __name__ == '__main__':
         for x in range(len(fit_mean)):
             sheet4.write(x, i, fit_mean[x])  # 写入数据参数对应 行, 列, 值
         sheet4.write(len(fit_mean) + 1, i, runTime)  # 写入数据参数对应 行, 列, 值
-        if (calc_e1(best) == 0 and calc_e2(best) == 0.0 and calc_e3(best) == 0):
+        if (calc_e1(best) == 0 and calc_e2(best) == 0.0 and calc_e3(best) == 0 and calc_e4(best) == 0):
             # 保存结果
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
@@ -570,11 +402,10 @@ if __name__ == '__main__':
             f = open(f_dir, 'a+')
             f.write('pop_size = ' + str(pop_size) + '\n' +
                     'epochs = ' + str(epochs) + '\n' +
-                    'task_name = ' + task_name + '\n' +
                     'sample_size =' + str(sample_size) + '\n' +
                     'stdev_data =' + str(stdev_data) + '\n' +
                     '运行时间 =' + str(runTime) + "秒" + '\n' +
-                    'l1,l2,l3 = ' + str(l1) + ',' + str(l2) + ',' + str(l3) + '\n' +
+
                     'now_time: ' + now + '\n' +
                     'fit =' + str(fit) + '\n' +
                     'best= ' + str(best) + '\n')
@@ -587,7 +418,7 @@ if __name__ == '__main__':
                 sheet3.write(x, i, fit_mean[x])  # 写入数据参数对应 行, 列, 值
             sheet3.write(len(fit_mean) + 1, i, runTime)  # 写入数据参数对应 行, 列, 值
             plt.xlabel('迭代次数')
-            plt.ylabel('适应值')
+            plt.ylabel('适应度')
             plt.title('迭代过程')
             plt.plot(fit[: epochs], color='r')
             plt.tight_layout()
